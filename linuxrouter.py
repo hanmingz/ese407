@@ -3,6 +3,7 @@ from mininet.net import Mininet
 from mininet.node import Node
 from mininet.log import setLogLevel, info
 from mininet.cli import CLI
+from mininet.link import TCLink
 
 class LinuxRouter( Node ):
 	"A Node with IP forwarding enabled."
@@ -19,26 +20,36 @@ class NetworkTopo(Topo):
 	def build(self, **opts):
 		
 		defaultIP = '10.0.1.1/24' #IP address for r0-eth1
-		router = self.addNode('r0', cls=LinuxRouter, ip=defaultIP)		
+		r0 = self.addNode('r0', cls=LinuxRouter, ip=defaultIP)
+		r1 = self.addNode('r1', cls=LinuxRouter, ip = '10.0.2.1/24')
 
-		h1=self.addHost('h1', ip = '10.0.1.2/24', defaultRoute='via 10.0.1.1')
-		h2=self.addHost('h2', ip = '10.0.2.2/24', defaultRoute='via 10.0.2.1')
-		
-		self.addLink(h1, router, intfName2='r0-eth1', params2={'ip':'10.0.1.1/24'})
-		self.addLink(h2, router, intfName2='r0-eth2', params2={'ip':'10.0.2.1/24'})
+
+		h01=self.addHost('h01', ip = '10.0.1.2/24', defaultRoute='via 10.0.1.1')
+		h02=self.addHost('h02', ip = '10.0.1.3/24', defaultRoute='via 10.0.1.1')
+
+		h11 = self.addHost('h11', ip = '10.0.2.2', defaultRoute='via 10.0.2.1')
+ 		
+		s0 = self.addSwitch('s0')
+
+		self.addLink(h01, s0)
+		self.addLink(h02, s0)
+		self.addLink(r0, s0, intfName1='r0-eth1', params1={'ip':'10.0.1.1/24'})
+
+		self.addLink(r1, r0, intfName1='r1-eth1', intfName2='r0-eth2', params1 = {'ip':'10.1.1.2/24'}, params2={'ip':'10.1.1.1/24'})
+		self.addLink(h11, r1, intfName2='r1-eth2', params2={'ip':'10.0.2.1/24'})
 
 
 def run():
 	topo = NetworkTopo()
 	net = Mininet(topo=topo)
 	net.start()
-	info('***Routing Table on Router:\n')
-	print net['r0'].cmd('route')
-	print net.pingPair()
-	print net['h1'].cmd('python -m SimpleHTTPServer 80 &')
-	net['h1'].cmdPrint('ping -c1 '+net['h2'].IP())
-	net['h2'].cmdPrint('ping -c1 '+net['h1'].IP())
-	
+	net['r0'].cmd('route add -net 10.0.2.0 netmask 255.255.255.0 r0-eth2')
+	net['r0'].cmd('route add -net 10.0.1.0 netmask 255.255.255.0 r0-eth1')
+	net['r0'].cmd('route add -net 10.1.1.0 netmask 255.255.255.0 r0-eth2')
+	net['r1'].cmd('route add -net 10.0.1.0 netmask 255.255.255.0 r1-eth1')
+	net['r1'].cmd('route add -net 10.0.2.0 netmask 255.255.255.0 r1-eth2')
+	net['r1'].cmd('route add -net 10.1.1.0 netmask 255.255.255.0 r1-eth1')
+
 	CLI(net)
 	net.stop()
 
