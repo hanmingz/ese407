@@ -34,6 +34,11 @@ def run():
 	net.start()
 	info('***Routing Table on Router:\n')
 	print net['r0'].cmd('route')
+	print net.pingPair()
+	print net['h1'].cmd('python -m SimpleHTTPServer 80 &')
+	net['h1'].cmdPrint('ping -c1 '+net['h2'].IP())
+	net['h2'].cmdPrint('ping -c1 '+net['h1'].IP())
+	
 	CLI(net)
 	net.stop()
 
