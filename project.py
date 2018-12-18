@@ -9,6 +9,7 @@ from mininet.cli import CLI
 from mininet.link import TCLink
 from mininet.topo import Topo
 from mininet.log import setLogLevel, info
+import os
 
 ENABLE_RIP = True
 
@@ -65,6 +66,9 @@ class MyTopo(Topo):
 
 
 def main():
+	os.system("dhclient eth0")
+	os.system("sudo wireshark &")
+	os.system("apt-get install traceroute")
 	myTopo = MyTopo()
 	net = Mininet(topo = myTopo, link = TCLink, autoSetMacs = True)
 	net.start()
